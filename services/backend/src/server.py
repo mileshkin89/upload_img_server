@@ -87,8 +87,8 @@ class UploadHandler(BaseHTTPRequestHandler):
 
 def run_server_on_port(port: int):
     current_process().name = f"worker-{port}"
-    logger.info(f"Starting server on http://localhost:{port}")
-    server = HTTPServer(("localhost", port), UploadHandler)
+    logger.info(f"Starting server on http://0.0.0.0:{port}")
+    server = HTTPServer(("0.0.0.0", port), UploadHandler)
     server.serve_forever()
 
 
