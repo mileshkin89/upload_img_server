@@ -3,9 +3,11 @@
 import os
 import json
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from multiprocessing import Process, current_process
 
 from settings.config import config
 from settings.logging_config import get_logger
+
 
 logger = get_logger(__name__)
 
@@ -19,11 +21,11 @@ class UploadHandler(BaseHTTPRequestHandler):
     }
 
     routes_post = {
-        "/": "_handle_post_upload",
+        "/": "_handle_post",
     }
 
     routes_delete = {
-        "/": "_handle_del_api_images",
+        "/": "_handle_del",
     }
 
     def _send_json_error(self, status_code: int, message: str) -> None:
@@ -78,15 +80,25 @@ class UploadHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
-        self.wfile.write("{{'message': 'Welcome to the Upload Server'}}".encode()) #b"{'message': 'Welcome to the Upload Server'}"
+        self.wfile.write(json.dumps({"message": "Welcome to the Upload Server"}).encode())
 
 
 
 
-if __name__ == "__main__":
-    try:
-        server = HTTPServer(("localhost", 8000), UploadHandler)
-        logger.info("Upload server running on http://localhost:8000")
-        server.serve_forever()
-    except Exception:
-        server.shutdown()
+def run_server_on_port(port: int):
+    current_process().name = f"worker-{port}"
+    logger.info(f"Starting server on http://localhost:{port}")
+    server = HTTPServer(("localhost", port), UploadHandler)
+    server.serve_forever()
+
+
+def run(workers: int = 1, start_port: int = 8000):
+    for i in range(workers):
+        port = start_port + i
+        p = Process(target=run_server_on_port, args=(port,))
+        p.start()
+        logger.info(f"Worker {i + 1} started on port {port}")
+
+
+if __name__ == '__main__':
+    run(workers=config.WEB_SERVER_WORKERS, start_port=config.WEB_SERVER_START_PORT)

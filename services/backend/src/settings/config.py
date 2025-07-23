@@ -13,6 +13,9 @@ class AppConfig(BaseSettings):
     UPLOAD_DIR: Path
     LOG_DIR: Path
 
+    WEB_SERVER_WORKERS: int
+    WEB_SERVER_START_PORT: int
+
     model_config = SettingsConfigDict(
         env_file=str(BASE_DIR / "backend/.env"),
         env_file_encoding="utf-8"
@@ -22,4 +25,3 @@ class AppConfig(BaseSettings):
 # Global application config instance
 config = AppConfig()
 
-print(BASE_DIR)
