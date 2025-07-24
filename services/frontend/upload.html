@@ -1,0 +1,70 @@
+<!--upload.html-->
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport"
+        content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <link rel="stylesheet" href="/static/css/upload.css">
+  <script src="/static/js/upload.js" defer></script>
+  <title>Image hosting</title>
+</head>
+<body>
+<div class="page-container">
+
+  <!-- Header with title and subtitle  -->
+  <header class="header-container">
+    <h1 class="header-title">Upload Photos</h1>
+    <p class="header-subtitle">Upload selfies, memes, or any fun pictures here.</p>
+  </header>
+
+  <!-- Tabs section  -->
+  <nav class="tabs">
+    <span class="tab active">Upload</span>
+    <a href="http://localhost/images" class="tab-link">
+      <span class="tab inactive">Images</span>
+    </a>
+  </nav>
+
+  <!-- Upload area -->
+  <section class="upload-section">
+    <div class="drop-area">
+      <div class="upload-item">
+        <svg width="49" height="49" viewBox="0 0 49 49" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M32.5 32.5L24.5 24.5L16.5 32.5" stroke="#4676FB" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round"/>
+          <path d="M24.5 24.5V42.5" stroke="#4676FB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M41.2799 37.28C43.2306 36.2165 44.7716 34.5338 45.6597 32.4973C46.5477 30.4607 46.7323 28.1865 46.1843 26.0334C45.6363 23.8803 44.3869 21.971 42.6333 20.6069C40.8796 19.2428 38.7216 18.5015 36.4999 18.5H33.9799C33.3745 16.1585 32.2462 13.9847 30.6798 12.142C29.1134 10.2993 27.1496 8.8357 24.9361 7.86121C22.7226 6.88673 20.317 6.42672 17.9002 6.51576C15.4833 6.60481 13.1181 7.2406 10.9823 8.37533C8.84649 9.51006 6.99574 11.1142 5.56916 13.0672C4.14259 15.0201 3.1773 17.2711 2.74588 19.6508C2.31446 22.0305 2.42813 24.4771 3.07835 26.8065C3.72856 29.136 4.8984 31.2877 6.49992 33.1"
+                stroke="#4676FB" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M32.5 32.5L24.5 24.5L16.5 32.5" stroke="#4676FB" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <!-- Upload instructions   -->
+      <div class="upload-text">
+        <p class="upload-main-text">Select a file or drag and drop here</p>
+        <p class="upload-main-subtext">Only support .jpg, .png and .gif. Maximum file size is 5MB</p>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Upload button  -->
+  <div class="upload-button">
+    <button id="uploadBtn">Browse your file</button>
+    <input type="file" id="fileInput" accept=".jpg,.jpeg,.png,.gif" style="display: none">
+  </div>
+
+  <!-- Upload result with copy link -->
+  <section class="upload-result">
+    <p class="result-title">Current Upload</p>
+    <div class="result-box">
+      <input type="text" id="resultLink" placeholder="https://" readonly>
+      <button class="copy-btn" id="copyBtn">COPY</button>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>

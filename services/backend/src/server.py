@@ -2,8 +2,13 @@
 
 import os
 import json
+import uuid
+import shutil
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from multiprocessing import Process, current_process
+from multipart import parse_form
+from PIL import Image, UnidentifiedImageError
+from exceptions import APIError, MaxSizeExceedError, MultipleFilesUploadError, NotSupportedFormatError
 
 from settings.config import config
 from settings.logging_config import get_logger
@@ -21,7 +26,7 @@ class UploadHandler(BaseHTTPRequestHandler):
     }
 
     routes_post = {
-        "/": "_handle_post",
+        "/api/upload/": "_handle_post_upload",
     }
 
     routes_delete = {
@@ -81,6 +86,76 @@ class UploadHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(json.dumps({"message": "Welcome to the Upload Server"}).encode())
+
+
+
+    def _handle_post_upload(self):
+
+        content_type = self.headers.get("Content-Type", "")
+        if "multipart/form-data" not in content_type:
+            self._send_json_error(400, "Bad Request: Expected multipart/form-data")
+            return
+
+        content_length = int(self.headers.get("Content-Length", 0))
+        headers = {
+            "Content-Type": content_type,
+            "Content-Length": str(content_length)
+        }
+
+        files = []
+
+        def on_file(file):
+            if len(files) >= 1:
+                raise MultipleFilesUploadError()
+            files.append(file)
+
+        try:
+            parse_form(headers, self.rfile, lambda _: None, on_file)  # type: ignore[arg-type]
+        except APIError as e:
+            self._send_json_error(e.status_code, e.message)
+            return
+
+        file = files[0]
+
+        filename = file.file_name.decode("utf-8") if file.file_name else "uploaded_file"
+        ext = os.path.splitext(filename)[1].lower()
+
+        if ext not in config.SUPPORTED_FORMATS:
+            raise NotSupportedFormatError(config.SUPPORTED_FORMATS)
+
+        file.file_object.seek(0, os.SEEK_END)
+        size = file.file_object.tell()
+        file.file_object.seek(0)
+
+        if size > config.MAX_FILE_SIZE:
+            raise MaxSizeExceedError(config.MAX_FILE_SIZE)
+
+        try:
+            image = Image.open(file.file_object)
+            image.verify()
+            file.file_object.seek(0)
+        except (UnidentifiedImageError, OSError):
+            raise NotSupportedFormatError(config.SUPPORTED_FORMATS)
+
+        original_name = os.path.splitext(filename)[0].lower()
+        unique_name = f"{original_name}_{uuid.uuid4()}{ext}"
+
+        os.makedirs(config.UPLOAD_DIR, exist_ok=True)
+        file_path = os.path.join(config.UPLOAD_DIR, unique_name)
+
+        with open(file_path, "wb") as f:
+            file.file_object.seek(0)
+            shutil.copyfileobj(file.file_object, f)
+
+        url = f"/images/{unique_name}"
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(
+            f'{{"filename": "{unique_name}", '
+            f'"url": "{url}"}}'.encode()
+        )
 
 
 
