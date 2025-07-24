@@ -12,6 +12,7 @@ load_dotenv()
 class AppConfig(BaseSettings):
     UPLOAD_DIR: Path
     LOG_DIR: Path
+    FRONTEND_DIR: Path = BASE_DIR.parent / "frontend"
 
     WEB_SERVER_WORKERS: int
     WEB_SERVER_START_PORT: int
