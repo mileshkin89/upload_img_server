@@ -22,15 +22,16 @@ os.makedirs(config.UPLOAD_DIR, exist_ok=True)
 class UploadHandler(BaseHTTPRequestHandler):
 
     routes_get = {
+        "/api/images/": "_handle_get_api_images",
         "/": "_handle_get_root",
     }
 
     routes_post = {
-        "/api/upload/": "_handle_post_upload",
+        "/api/upload/": "_handle_post_api_upload",
     }
 
     routes_delete = {
-        "/": "_handle_del",
+        "/api/images/": "_handle_delete_api_image",
     }
 
     def _send_json_error(self, status_code: int, message: str) -> None:
@@ -88,8 +89,27 @@ class UploadHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps({"message": "Welcome to the Upload Server"}).encode())
 
 
+    def _handle_get_api_images(self):
+        try:
+            files = os.listdir(config.UPLOAD_DIR)
+        except Exception as e:
+            self._send_json_error(500, f"Error reading image directory: {e}")
+            return
 
-    def _handle_post_upload(self):
+        images = []
+        for f in files:
+            ext = os.path.splitext(f)[1].lower()
+            if ext in config.SUPPORTED_FORMATS:
+                images.append(f)
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(images).encode())
+
+
+
+    def _handle_post_api_upload(self):
 
         content_type = self.headers.get("Content-Type", "")
         if "multipart/form-data" not in content_type:
@@ -157,6 +177,42 @@ class UploadHandler(BaseHTTPRequestHandler):
             f'"url": "{url}"}}'.encode()
         )
 
+
+    def _handle_delete_api_image(self):
+        filepath = self.path
+        if filepath.startswith("/api/images/"):
+            filename = filepath[len("/api/images/"):]
+        elif filepath.startswith("/images/"):
+            filename = filepath[len("/images/"):]
+
+        if not filename:
+            self._send_json_error(400, "Filename not provided.")
+            return
+
+        filepath = os.path.join(config.UPLOAD_DIR, filename)
+        ext = os.path.splitext(filename)[1].lower()
+
+        if ext not in config.SUPPORTED_FORMATS:
+            self._send_json_error(400, "Unsupported file format.")
+            return
+
+        if not os.path.isfile(filepath):
+            self._send_json_error(404, "File not found.")
+            return
+
+        try:
+            os.remove(filepath)
+        except PermissionError:
+            self._send_json_error(500, "Permission denied to delete file.")
+            return
+        except Exception as e:
+            self._send_json_error(500, f"Internal Server Error: {str(e)}")
+            return
+
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps({"message": f"File '{filename}' deleted successfully."}).encode())
 
 
 

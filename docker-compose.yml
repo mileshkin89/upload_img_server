@@ -17,7 +17,7 @@ services:
       - PYTHONPATH=/usr/src/upload-server
     volumes:
       - ./services/backend/src:/usr/src/upload-server
-      - ./images:/usr/src/images
+      - ./img_storage:/usr/src/img_storage
       - ./logs:/usr/src/logs
     ports:
       - "8000-8009:8000-8009"
@@ -36,7 +36,7 @@ services:
     ports:
       - "80:80"
     volumes:
-      - ./images:/usr/src/images:ro
+      - ./img_storage:/usr/src/img_storage:ro
       - ./logs/nginx:/var/log/nginx
       - ./services/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./services/frontend:/usr/share/nginx/html:ro

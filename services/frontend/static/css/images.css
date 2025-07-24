@@ -1,0 +1,114 @@
+body {
+    margin: 0;
+    background-color: #F2F5FF;
+    font-family: 'Inter', sans-serif;
+}
+
+.images-container {
+    position: relative;
+    width: 1440px;
+    margin: 0 auto;
+    padding-top: 30px;
+}
+
+.header-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: 24px;
+}
+
+.header-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #0B0B0B;
+}
+
+.header-subtitle {
+    font-size: 14px;
+    font-weight: 400;
+    color: #0B0B0B;
+}
+
+.tabs {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-bottom: 36px;
+}
+
+.tab {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+.tab.active {
+    color: #0060FF;
+    text-decoration: none;
+}
+
+.tab.inactive {
+    color: #ADC0F8;
+    text-decoration: none;
+}
+
+.table-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 200px;
+    margin-bottom: 18px;
+    align-items: center;
+}
+
+.table-header {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 200px;
+    margin-bottom: 18px;
+    align-items: center;
+    text-align: center;
+}
+
+.table-header span {
+    font-weight: 600;
+    font-size: 16px;
+    color: #0B0B0B;
+    width: 200px;
+    margin-bottom: 18px;
+}
+
+.file-name {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+    gap: 12px;
+    width: 350px;
+}
+
+.file-icon {
+    width: 40px;
+    height: 40px;
+}
+
+.file-url {
+    width: 300px;
+    font-size: 14px;
+    color: #0B0B0B;
+}
+
+.file-delete {
+    width: 100px;
+    text-align: center;
+}
+
+.delete-btn {
+    background: rgba(255, 0, 0, 0.05);
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    color: #FF0000;
+    font-size: 14px;
+    cursor: pointer;
+}
