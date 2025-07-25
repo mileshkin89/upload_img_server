@@ -8,8 +8,10 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from multiprocessing import Process, current_process
 from multipart import parse_form
 from PIL import Image, UnidentifiedImageError
-from exceptions import APIError, MaxSizeExceedError, MultipleFilesUploadError, NotSupportedFormatError
 
+from db.dto import ImageDTO
+from db.dependencies import get_image_repository
+from exceptions import APIError, MaxSizeExceedError, MultipleFilesUploadError, NotSupportedFormatError
 from settings.config import config
 from settings.logging_config import get_logger
 
@@ -158,22 +160,38 @@ class UploadHandler(BaseHTTPRequestHandler):
             raise NotSupportedFormatError(config.SUPPORTED_FORMATS)
 
         original_name = os.path.splitext(filename)[0].lower()
-        unique_name = f"{original_name}_{uuid.uuid4()}{ext}"
+        unique_name = f"{original_name}_{uuid.uuid4()}"
+        unique_name_ext = f"{original_name}_{uuid.uuid4()}{ext}"
 
         os.makedirs(config.UPLOAD_DIR, exist_ok=True)
-        file_path = os.path.join(config.UPLOAD_DIR, unique_name)
+        file_path = os.path.join(config.UPLOAD_DIR, unique_name_ext)
 
         with open(file_path, "wb") as f:
             file.file_object.seek(0)
             shutil.copyfileobj(file.file_object, f)
 
-        url = f"/images/{unique_name}"
+        image_dto = ImageDTO(
+            filename=unique_name,
+            original_name=original_name,
+            size=size,
+            file_type=ext
+        )
+
+        repository = get_image_repository()
+
+        try:
+            repository.create(image_dto)
+        except Exception as e:
+            self._send_json_error(500, "Error create image record in DB: " + str(e))
+            return
+
+        url = f"/images/{unique_name_ext}"
 
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.end_headers()
         self.wfile.write(
-            f'{{"filename": "{unique_name}", '
+            f'{{"filename": "{unique_name_ext}", '
             f'"url": "{url}"}}'.encode()
         )
 
