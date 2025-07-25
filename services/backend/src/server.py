@@ -48,6 +48,12 @@ class UploadHandler(BaseHTTPRequestHandler):
         response = {"detail": message}
         self.wfile.write(json.dumps(response).encode())
 
+    def _send_json_response(self, status_code: int, data: dict) -> None:
+        self.send_response(status_code)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode())
+
 
     def do_GET(self):
         """Handles GET requests and dispatches them based on route."""
@@ -85,10 +91,7 @@ class UploadHandler(BaseHTTPRequestHandler):
     def _handle_get_root(self):
         """Handles healthcheck at GET /."""
         logger.info("Healthcheck endpoint hit: /")
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps({"message": "Welcome to the Upload Server"}).encode())
+        self._send_json_response(200, {"message": "Welcome to the Upload Server"})
 
 
     def _handle_get_api_images(self):
@@ -104,10 +107,7 @@ class UploadHandler(BaseHTTPRequestHandler):
             if ext in config.SUPPORTED_FORMATS:
                 images.append(f)
 
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps(images).encode())
+        self._send_json_response(200, images)
 
 
 
@@ -188,13 +188,8 @@ class UploadHandler(BaseHTTPRequestHandler):
 
         url = f"/images/{unique_name_ext}"
 
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(
-            f'{{"filename": "{unique_name_ext}", '
-            f'"url": "{url}"}}'.encode()
-        )
+        self._send_json_response(200,{"filename": f"{unique_name_ext}","url": f"{url}"})
+
 
 
     def _handle_delete_api_image(self):
@@ -243,10 +238,7 @@ class UploadHandler(BaseHTTPRequestHandler):
             self._send_json_error(500, f"Internal Server Error: {str(e)}")
             return
 
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(json.dumps({"message": f"File '{filename}' deleted successfully."}).encode())
+        self._send_json_response(200, {"message": f"File '{filename}' deleted successfully."})
 
 
 
