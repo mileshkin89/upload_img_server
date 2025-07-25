@@ -140,7 +140,7 @@ class UploadHandler(BaseHTTPRequestHandler):
         file = files[0]
 
         filename = file.file_name.decode("utf-8") if file.file_name else "uploaded_file"
-        ext = os.path.splitext(filename)[1].lower()
+        original_name, ext = os.path.splitext(filename.lower())
 
         if ext not in config.SUPPORTED_FORMATS:
             raise NotSupportedFormatError(config.SUPPORTED_FORMATS)
@@ -159,9 +159,8 @@ class UploadHandler(BaseHTTPRequestHandler):
         except (UnidentifiedImageError, OSError):
             raise NotSupportedFormatError(config.SUPPORTED_FORMATS)
 
-        original_name = os.path.splitext(filename)[0].lower()
         unique_name = f"{original_name}_{uuid.uuid4()}"
-        unique_name_ext = f"{original_name}_{uuid.uuid4()}{ext}"
+        unique_name_ext = f"{unique_name}{ext}"
 
         os.makedirs(config.UPLOAD_DIR, exist_ok=True)
         file_path = os.path.join(config.UPLOAD_DIR, unique_name_ext)
@@ -170,6 +169,7 @@ class UploadHandler(BaseHTTPRequestHandler):
             file.file_object.seek(0)
             shutil.copyfileobj(file.file_object, f)
 
+        # write to DB
         image_dto = ImageDTO(
             filename=unique_name,
             original_name=original_name,
@@ -185,6 +185,7 @@ class UploadHandler(BaseHTTPRequestHandler):
             self._send_json_error(500, "Error create image record in DB: " + str(e))
             return
 
+
         url = f"/images/{unique_name_ext}"
 
         self.send_response(200)
@@ -197,6 +198,7 @@ class UploadHandler(BaseHTTPRequestHandler):
 
 
     def _handle_delete_api_image(self):
+        filename = ""
         filepath = self.path
         if filepath.startswith("/api/images/"):
             filename = filepath[len("/api/images/"):]
@@ -207,8 +209,8 @@ class UploadHandler(BaseHTTPRequestHandler):
             self._send_json_error(400, "Filename not provided.")
             return
 
+        unique_name, ext = os.path.splitext(filename.lower())
         filepath = os.path.join(config.UPLOAD_DIR, filename)
-        ext = os.path.splitext(filename)[1].lower()
 
         if ext not in config.SUPPORTED_FORMATS:
             self._send_json_error(400, "Unsupported file format.")
@@ -217,6 +219,20 @@ class UploadHandler(BaseHTTPRequestHandler):
         if not os.path.isfile(filepath):
             self._send_json_error(404, "File not found.")
             return
+
+
+        # Delete from DB
+        repository = get_image_repository()
+
+        try:
+            is_deleted = repository.delete_by_filename(unique_name)
+            if not is_deleted:
+                logger.warning(f"File '{unique_name}' was not found in database while deleting")
+                return
+        except Exception as e:
+            self._send_json_error(500, "Error delete image from DB: " + str(e))
+            return
+
 
         try:
             os.remove(filepath)

@@ -37,6 +37,20 @@ class PostgresImageRepository:
                         upload_time=upload_time.isoformat() if upload_time else None,
                     )
         except Exception as e:
-            logger.error(f"Error create image record in DB: ", str(e))
+            logger.error(f"Error create image record in DB: {str(e)}")
+
+
+    def delete_by_filename(self, filename: str) -> bool:
+        query = "DELETE FROM images WHERE filename = %s RETURNING id"
+        try:
+            with self._pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(query, (filename,))
+                    result = cur.fetchone()
+                    conn.commit()
+                    return result is not None
+        except Exception as e:
+            logger.error(f"Error delete image from DB: {filename}, {str(e)}")
+            return False
 
 
