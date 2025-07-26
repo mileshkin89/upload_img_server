@@ -12,7 +12,7 @@ window.addEventListener('DOMContentLoaded', () => {
         row.innerHTML = `
           <div class="file-name">
             <a href="/images/${file}" class="file-link">
-              <img src="/images_repo/${file}" alt="icon" class="file-icon">
+              <img src="/images/${file}" alt="icon" class="file-icon">
             </a>  
             <a href="/images/${file}" class="file-link">  
               <span>${file}</span>
