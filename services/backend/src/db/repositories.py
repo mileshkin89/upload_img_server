@@ -1,7 +1,7 @@
 
 from psycopg_pool import ConnectionPool
 from db.dto import ImageDTO, ImageDetailsDTO
-from exceptions.repository_errors import EntityCreationError, EntityDeletionError
+from exceptions.repository_errors import EntityCreationError, EntityDeletionError, QueryExecutionError
 from psycopg.errors import Error as PsycopgError
 from settings.logging_config import get_logger
 
@@ -44,6 +44,7 @@ class PostgresImageRepository:
             raise EntityCreationError("Image", str(e))
 
 
+
     def delete_by_filename(self, filename: str) -> bool:
         query = "DELETE FROM images WHERE filename = %s RETURNING id"
         try:
@@ -56,5 +57,32 @@ class PostgresImageRepository:
         except PsycopgError as e:
             raise EntityDeletionError("Image", filename, str(e))
 
+
+
+    def get_list_all(self) -> list[ImageDetailsDTO]:
+        query = """
+            SELECT id, filename, original_name, size, upload_time, file_type::text
+            FROM images
+            ORDER BY upload_time DESC
+        """
+        try:
+            with self._pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(query)
+                    results = cur.fetchall()
+
+                    return [
+                        ImageDetailsDTO(
+                            id=row[0],
+                            filename=row[1],
+                            original_name=row[2],
+                            size=row[3],
+                            upload_time=row[4].isoformat() if row[4] else None,
+                            file_type=row[5],
+                        )
+                        for row in results
+                    ]
+        except PsycopgError as e:
+            raise QueryExecutionError("get_list_all", str(e))
 
 

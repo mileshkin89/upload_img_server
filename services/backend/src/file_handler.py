@@ -183,6 +183,18 @@ class FileHandler:
             return
 
 
+    def get_list_images(self):
+
+        repository = get_image_repository()
+
+        images_dto = repository.get_list_all()
+
+        images_filenames = []
+        for image in images_dto:
+            images_filenames.append(image.filename + image.file_type)
+
+        return images_filenames
+
 
 
 

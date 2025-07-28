@@ -72,17 +72,14 @@ class UploadHandler(BaseHTTPRequestHandler, JsonSenderMixin):
 
 
     def _handle_get_api_images(self):
-        try:
-            files = os.listdir(config.UPLOAD_DIR)
-        except Exception as e:
-            self.send_json_error(500, f"Error reading image directory: {e}")
-            return
 
-        images = []
-        for f in files:
-            ext = os.path.splitext(f)[1].lower()
-            if ext in config.SUPPORTED_FORMATS:
-                images.append(f)
+        f_handler = FileHandler()
+        try:
+            images = f_handler.get_list_images()
+        except Exception as e:
+            logger.exception(f"Unexpected error to get list of images: {str(e)}")
+            self.send_json_error(500, f"Internal server error: {str(e)}")
+            return
 
         self.send_json_response(200, images)
 
