@@ -1,16 +1,10 @@
 # server.py
 
 import os
-import uuid
-import shutil
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from multiprocessing import Process, current_process
-from multipart import parse_form
-from PIL import Image, UnidentifiedImageError
 
-from db.dto import ImageDTO
-from db.dependencies import get_image_repository
-from exceptions import APIError, MaxSizeExceedError, MultipleFilesUploadError, NotSupportedFormatError
+from exceptions.api_errors import APIError
 from json_sender import JsonSenderMixin
 from file_handler import FileHandler
 from settings.config import config
@@ -126,41 +120,19 @@ class UploadHandler(BaseHTTPRequestHandler, JsonSenderMixin):
             self.send_json_error(400, "Filename not provided.")
             return
 
-        unique_name, ext = os.path.splitext(filename.lower())
-        filepath = os.path.join(config.UPLOAD_DIR, filename)
-
-        if ext not in config.SUPPORTED_FORMATS:
-            self.send_json_error(400, "Unsupported file format.")
-            return
-
-        if not os.path.isfile(filepath):
-            self.send_json_error(404, "File not found.")
-            return
-
-
-        # Delete from DB
-        repository = get_image_repository()
-
+        f_handler = FileHandler()
         try:
-            is_deleted = repository.delete_by_filename(unique_name)
-            if not is_deleted:
-                logger.warning(f"File '{unique_name}' was not found in database while deleting")
-                return
-        except Exception as e:
-            self.send_json_error(500, "Error delete image from DB: " + str(e))
-            return
-
-
-        try:
-            os.remove(filepath)
-        except PermissionError:
-            self.send_json_error(500, "Permission denied to delete file.")
+            f_handler.delete_file(filename)
+        except APIError as e:
+            self.send_json_error(e.status_code, e.message)
             return
         except Exception as e:
-            self.send_json_error(500, f"Internal Server Error: {str(e)}")
+            logger.exception(f"Unexpected error during file deletion: {str(e)}")
+            self.send_json_error(500, f"Internal server error: {str(e)}")
             return
 
         self.send_json_response(200, {"message": f"File '{filename}' deleted successfully."})
+
 
 
 

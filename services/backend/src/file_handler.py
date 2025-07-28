@@ -9,7 +9,8 @@ from PIL import Image, UnidentifiedImageError
 from typing import Union
 from http.client import HTTPMessage
 
-from exceptions import APIError, MaxSizeExceedError, MultipleFilesUploadError, NotSupportedFormatError
+from exceptions.api_errors import APIError, MaxSizeExceedError, MultipleFilesUploadError, NotSupportedFormatError
+from exceptions.repository_errors import EntityNotFoundError, RepositoryError
 from db.dto import ImageDTO
 from db.dependencies import get_image_repository
 from settings.config import config
@@ -149,6 +150,37 @@ class FileHandler:
             repository.delete_by_filename(self.filename)
             raise APIError(f"Failed to save file: {e}")
 
+
+    def delete_file(self, filename: str):
+
+        self.unique_name = os.path.splitext(filename)[0].lower()
+
+        if not self._valided_file_format(filename):
+            raise APIError
+
+        # Delete from DB
+        repository = get_image_repository()
+
+        try:
+            is_deleted = repository.delete_by_filename(self.unique_name)
+            if not is_deleted:
+                logger.warning(f"File '{self.unique_name}' was not found in database while deleting")
+                raise EntityNotFoundError("Image", self.unique_name)
+        except Exception as e:
+            logger.error(f"File '{filename}' is not deleted." + str(e))
+            raise RepositoryError
+
+        # delete file
+        filepath = os.path.join(config.UPLOAD_DIR, filename)
+
+        try:
+            os.remove(filepath)
+        except PermissionError:
+            logger.error("Permission denied to delete file.")
+            return
+        except Exception as e:
+            logger.error(f"Internal Server Error: {str(e)}")
+            return
 
 
 
