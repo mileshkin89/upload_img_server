@@ -12,6 +12,7 @@ from db.dto import ImageDTO
 from db.dependencies import get_image_repository
 from exceptions import APIError, MaxSizeExceedError, MultipleFilesUploadError, NotSupportedFormatError
 from json_sender import JsonSenderMixin
+from file_handler import FileHandler
 from settings.config import config
 from settings.logging_config import get_logger
 
@@ -95,82 +96,21 @@ class UploadHandler(BaseHTTPRequestHandler, JsonSenderMixin):
 
     def _handle_post_api_upload(self):
 
-        content_type = self.headers.get("Content-Type", "")
-        if "multipart/form-data" not in content_type:
-            self.send_json_error(400, "Bad Request: Expected multipart/form-data")
-            return
-
-        content_length = int(self.headers.get("Content-Length", 0))
-        headers = {
-            "Content-Type": content_type,
-            "Content-Length": str(content_length)
-        }
-
-        files = []
-
-        def on_file(file):
-            if len(files) >= 1:
-                raise MultipleFilesUploadError()
-            files.append(file)
-
+        f_handler = FileHandler()
         try:
-            parse_form(headers, self.rfile, lambda _: None, on_file)  # type: ignore[arg-type]
+            f_handler.parse_formdata(self.headers, self.rfile)
+            f_handler.save_file(f_handler.file)
         except APIError as e:
             self.send_json_error(e.status_code, e.message)
             return
-
-        file = files[0]
-
-        filename = file.file_name.decode("utf-8") if file.file_name else "uploaded_file"
-        original_name, ext = os.path.splitext(filename.lower())
-
-        if ext not in config.SUPPORTED_FORMATS:
-            raise NotSupportedFormatError(config.SUPPORTED_FORMATS)
-
-        file.file_object.seek(0, os.SEEK_END)
-        size = file.file_object.tell()
-        file.file_object.seek(0)
-
-        if size > config.MAX_FILE_SIZE:
-            raise MaxSizeExceedError(config.MAX_FILE_SIZE)
-
-        try:
-            image = Image.open(file.file_object)
-            image.verify()
-            file.file_object.seek(0)
-        except (UnidentifiedImageError, OSError):
-            raise NotSupportedFormatError(config.SUPPORTED_FORMATS)
-
-        unique_name = f"{original_name}_{uuid.uuid4()}"
-        unique_name_ext = f"{unique_name}{ext}"
-
-        os.makedirs(config.UPLOAD_DIR, exist_ok=True)
-        file_path = os.path.join(config.UPLOAD_DIR, unique_name_ext)
-
-        with open(file_path, "wb") as f:
-            file.file_object.seek(0)
-            shutil.copyfileobj(file.file_object, f)
-
-        # write to DB
-        image_dto = ImageDTO(
-            filename=unique_name,
-            original_name=original_name,
-            size=size,
-            file_type=ext
-        )
-
-        repository = get_image_repository()
-
-        try:
-            repository.create(image_dto)
         except Exception as e:
-            self.send_json_error(500, "Error create image record in DB: " + str(e))
+            logger.exception("Unexpected error during file upload")
+            self.send_json_error(500, f"Internal server error: {str(e)}")
             return
 
+        url = f"/images/{f_handler.unique_name_ext}"
 
-        url = f"/images/{unique_name_ext}"
-
-        self.send_json_response(200,{"filename": f"{unique_name_ext}","url": f"{url}"})
+        self.send_json_response(200,{"filename": f"{f_handler.unique_name_ext}","url": f"{url}"})
 
 
 
