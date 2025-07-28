@@ -1,6 +1,8 @@
 
 from psycopg_pool import ConnectionPool
 from db.dto import ImageDTO, ImageDetailsDTO
+from exceptions.repository_errors import EntityCreationError, EntityDeletionError
+from psycopg.errors import Error as PsycopgError
 from settings.logging_config import get_logger
 
 logger = get_logger(__name__)
@@ -36,8 +38,10 @@ class PostgresImageRepository:
                         file_type=image.file_type,
                         upload_time=upload_time.isoformat() if upload_time else None,
                     )
+        except PsycopgError as e:
+            raise EntityCreationError("Image", str(e))
         except Exception as e:
-            logger.error(f"Error create image record in DB: {str(e)}")
+            raise EntityCreationError("Image", str(e))
 
 
     def delete_by_filename(self, filename: str) -> bool:
@@ -49,8 +53,8 @@ class PostgresImageRepository:
                     result = cur.fetchone()
                     conn.commit()
                     return result is not None
-        except Exception as e:
-            logger.error(f"Error delete image from DB: {filename}, {str(e)}")
-            return False
+        except PsycopgError as e:
+            raise EntityDeletionError("Image", filename, str(e))
+
 
 
