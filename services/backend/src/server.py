@@ -5,10 +5,10 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from multiprocessing import Process, current_process
 
 from exceptions.api_errors import APIError
-from json_sender import JsonSenderMixin
 from file_handler import FileHandler
-from route_parser import RouteParserMixin
-from pagination import PaginationMixin
+from mixins.json_sender import JsonSenderMixin
+from mixins.route_parser import RouteParserMixin
+from mixins.pagination import PaginationMixin
 from settings.config import config
 from settings.logging_config import get_logger
 
