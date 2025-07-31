@@ -7,6 +7,8 @@ from multiprocessing import Process, current_process
 from exceptions.api_errors import APIError
 from json_sender import JsonSenderMixin
 from file_handler import FileHandler
+from route_parser import RouteParserMixin
+from pagination import PaginationMixin
 from settings.config import config
 from settings.logging_config import get_logger
 
@@ -16,7 +18,7 @@ logger = get_logger(__name__)
 os.makedirs(config.UPLOAD_DIR, exist_ok=True)
 
 
-class UploadHandler(BaseHTTPRequestHandler, JsonSenderMixin):
+class UploadHandler(BaseHTTPRequestHandler, JsonSenderMixin, RouteParserMixin, PaginationMixin):
 
     routes_get = {
         "/api/images/": "_handle_get_api_images",
@@ -28,41 +30,21 @@ class UploadHandler(BaseHTTPRequestHandler, JsonSenderMixin):
     }
 
     routes_delete = {
-        "/api/images/": "_handle_delete_api_image",
+        "/api/images/<filename>": "_handle_delete_api_image",
     }
 
 
     def do_GET(self):
         """Handles GET requests and dispatches them based on route."""
-        self._handle_request(self.routes_get)
+        self.handle_request(self.routes_get)
 
     def do_POST(self):
         """Handles POST requests and dispatches them based on route."""
-        self._handle_request(self.routes_post)
+        self.handle_request(self.routes_post)
 
     def do_DELETE(self):
         """Handles DELETE requests and dispatches them based on route."""
-        self._handle_request(self.routes_delete)
-
-
-    def _handle_request(self, routes: dict[str, str]) -> None:
-        handler_name = routes.get(self.path)
-        if not handler_name:
-            for route_prefix, candidate_handler in routes.items():
-                if self.path.startswith(route_prefix):
-                    handler_name = candidate_handler
-                    break
-
-        if not handler_name:
-            self.send_json_error(404, "Not Found")
-            return
-
-        handler = getattr(self, handler_name, None)
-        if not handler:
-            self.send_json_error(500, "Handler not implemented.")
-            return
-
-        handler()
+        self.handle_request(self.routes_delete)
 
 
     def _handle_get_root(self):
@@ -73,16 +55,19 @@ class UploadHandler(BaseHTTPRequestHandler, JsonSenderMixin):
 
     def _handle_get_api_images(self):
 
+        pagination_to_sql = self.get_limit_offset(self.route_query_params)
+        limit = pagination_to_sql.get("limit")
+        offset = pagination_to_sql.get("offset")
+
         f_handler = FileHandler()
         try:
-            images = f_handler.get_list_images()
+            images = f_handler.get_list_images(limit, offset)
         except Exception as e:
             logger.exception(f"Unexpected error to get list of images: {str(e)}")
             self.send_json_error(500, f"Internal server error: {str(e)}")
             return
 
         self.send_json_response(200, images)
-
 
 
     def _handle_post_api_upload(self):
@@ -104,14 +89,9 @@ class UploadHandler(BaseHTTPRequestHandler, JsonSenderMixin):
         self.send_json_response(200,{"filename": f"{f_handler.unique_name_ext}","url": f"{url}"})
 
 
-
     def _handle_delete_api_image(self):
-        filename = ""
-        filepath = self.path
-        if filepath.startswith("/api/images/"):
-            filename = filepath[len("/api/images/"):]
-        elif filepath.startswith("/images/"):
-            filename = filepath[len("/images/"):]
+
+        filename = self.route_params.get("filename", "")
 
         if not filename:
             self.send_json_error(400, "Filename not provided.")

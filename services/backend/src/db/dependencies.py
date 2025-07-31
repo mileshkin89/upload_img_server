@@ -25,5 +25,4 @@ def get_image_repository():
     if _image_repository is None:
         pool = get_connection_pool()
         _image_repository = PostgresImageRepository(pool)
-        logger.info(f"Connecting to DB: {config.database_url}")
     return _image_repository

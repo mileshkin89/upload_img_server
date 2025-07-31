@@ -183,11 +183,11 @@ class FileHandler:
             return
 
 
-    def get_list_images(self):
+    def get_list_images(self, limit: int = 8, offset: int = 0):
 
         repository = get_image_repository()
 
-        images_dto = repository.get_list_all()
+        images_dto = repository.get_list_paginated(limit, offset)
 
         images_filenames = []
         for image in images_dto:

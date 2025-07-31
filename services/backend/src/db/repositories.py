@@ -59,16 +59,17 @@ class PostgresImageRepository:
 
 
 
-    def get_list_all(self) -> list[ImageDetailsDTO]:
+    def get_list_paginated(self, limit: int, offset: int) -> list[ImageDetailsDTO]:
         query = """
             SELECT id, filename, original_name, size, upload_time, file_type::text
             FROM images
             ORDER BY upload_time DESC
+            LIMIT %s OFFSET %s
         """
         try:
             with self._pool.connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute(query)
+                    cur.execute(query, (limit, offset))
                     results = cur.fetchall()
 
                     return [
@@ -83,6 +84,17 @@ class PostgresImageRepository:
                         for row in results
                     ]
         except PsycopgError as e:
-            raise QueryExecutionError("get_list_all", str(e))
+            raise QueryExecutionError("get_list_paginated", str(e))
+
+
+    def count_all(self) -> int:
+        query = "SELECT COUNT(*) FROM images"
+        try:
+            with self._pool.connection() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(query)
+                    return cur.fetchone()[0]
+        except PsycopgError as e:
+            raise QueryExecutionError("count_all", str(e))
 
 

@@ -22,7 +22,6 @@ def get_connection_pool() -> ConnectionPool:
     """
     global _pool
     if _pool is None:
-        logger.info(f"Creating connection pool with URL: {config.database_url}")
         _pool = ConnectionPool(
             conninfo=config.database_url,
             min_size=2,
