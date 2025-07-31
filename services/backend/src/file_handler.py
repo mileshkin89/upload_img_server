@@ -3,6 +3,7 @@
 import os
 import uuid
 import shutil
+import math
 from typing import BinaryIO
 from multipart import parse_form
 from PIL import Image, UnidentifiedImageError
@@ -183,17 +184,25 @@ class FileHandler:
             return
 
 
-    def get_list_images(self, limit: int = 8, offset: int = 0):
+    def get_list_images(self, limit: int = 8, offset: int = 0) -> dict:
 
         repository = get_image_repository()
 
         images_dto = repository.get_list_paginated(limit, offset)
 
+        total_images = repository.count_all()
+        per_page = limit
+        total_pages = math.ceil(total_images / per_page)
+
         images_filenames = []
         for image in images_dto:
             images_filenames.append(image.filename + image.file_type)
 
-        return images_filenames
+        return {
+          "files": images_filenames,
+          "total_pages": total_pages
+        }
+
 
 
 

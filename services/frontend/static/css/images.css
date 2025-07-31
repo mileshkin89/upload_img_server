@@ -4,7 +4,7 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
-.images-container {
+.page-container {
     position: relative;
     width: 1440px;
     margin: 0 auto;
@@ -54,7 +54,7 @@ body {
 }
 
 .table-row {
-    display: flex;
+    display: block;
     justify-content: space-between;
     padding: 0 200px;
     margin-bottom: 18px;

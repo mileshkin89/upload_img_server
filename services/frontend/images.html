@@ -10,7 +10,7 @@
   <script src="/static/js/images.js"></script>
 </head>
 <body>
-<div class="images-container">
+<div class="page-container">
 
   <!-- Header -->
   <header class="header-container">
@@ -26,6 +26,25 @@
     <span class="tab active">Images</span>
   </nav>
 
+  <!-- Controls Header -->
+    <div class="gallery-controls">
+      <div class="sort-controls">
+        <select id="sortSelect">
+          <option value="desc" selected>Newest First</option>
+          <option value="asc">Oldest First</option>
+        </select>
+      </div>
+      <div class="per-page-controls">
+        <div class="per-page-select">
+          <select id="perPageSelect">
+            <option value="4">4</option>
+            <option value="8" selected>8</option>
+            <option value="12">12</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
   <!-- Table Header -->
   <div class="table-header">
     <span>Name</span>
@@ -34,7 +53,23 @@
   </div>
 
   <!-- Table rows -->
-  <div class="table-row">
+  <div class="images-container">
+    <div class="table-row">
+    </div>
+  </div>
+
+
+  <!-- Pagination Footer -->
+  <div class="pagination-controls">
+    <button class="pagination-btn" id="prevPage" disabled>
+      <i class="fas fa-chevron-left"></i> -
+    </button>
+    <div class="pagination-info">
+      Page <span id="currentPage">1</span> of <span id="totalPages">1</span>
+    </div>
+    <button class="pagination-btn" id="nextPage" disabled>
+      + <i class="fas fa-chevron-right"></i>
+    </button>
   </div>
 
 </div>
