@@ -9,6 +9,7 @@ from file_handler import FileHandler
 from mixins.json_sender import JsonSenderMixin
 from mixins.route_parser import RouteParserMixin
 from mixins.pagination import PaginationMixin
+from mixins.sorter import SorterMixin
 from settings.config import config
 from settings.logging_config import get_logger
 
@@ -18,7 +19,7 @@ logger = get_logger(__name__)
 os.makedirs(config.UPLOAD_DIR, exist_ok=True)
 
 
-class UploadHandler(BaseHTTPRequestHandler, JsonSenderMixin, RouteParserMixin, PaginationMixin):
+class UploadHandler(BaseHTTPRequestHandler, JsonSenderMixin, RouteParserMixin, PaginationMixin, SorterMixin):
 
     routes_get = {
         "/api/images/": "_handle_get_api_images",
@@ -59,9 +60,13 @@ class UploadHandler(BaseHTTPRequestHandler, JsonSenderMixin, RouteParserMixin, P
         limit = pagination_to_sql.get("limit")
         offset = pagination_to_sql.get("offset")
 
+        sort_to_sql = self.get_sort_params(self.route_query_params)
+        sort_param = sort_to_sql.get("sort_param")
+        sort_value = sort_to_sql.get("sort_value")
+
         f_handler = FileHandler()
         try:
-            images = f_handler.get_list_images(limit, offset)
+            images = f_handler.get_list_images(limit, offset, sort_param, sort_value)
         except Exception as e:
             logger.exception(f"Unexpected error to get list of images: {str(e)}")
             self.send_json_error(500, f"Internal server error: {str(e)}")

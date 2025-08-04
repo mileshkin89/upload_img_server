@@ -1,5 +1,4 @@
 
-
 import os
 import uuid
 import shutil
@@ -184,11 +183,11 @@ class FileHandler:
             return
 
 
-    def get_list_images(self, limit: int = 8, offset: int = 0) -> dict:
+    def get_list_images(self, limit: int = 8, offset: int = 0, sort_param: str = 'upload_time', sort_value: str = 'desc') -> dict:
 
         repository = get_image_repository()
 
-        images_dto = repository.get_list_paginated(limit, offset)
+        images_dto = repository.get_list_paginated_sorted(limit, offset, sort_param, sort_value)
 
         total_images = repository.count_all()
         per_page = limit

@@ -29,7 +29,11 @@
   <!-- Controls Header -->
     <div class="gallery-controls">
       <div class="sort-controls">
-        <select id="sortSelect">
+        <select id="sortParams">
+          <option value="sort_age" selected>Uploaded time</option>
+          <option value="sort_size">File size</option>
+        </select>
+        <select id="sortValue">
           <option value="desc" selected>Newest First</option>
           <option value="asc">Oldest First</option>
         </select>

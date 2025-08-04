@@ -59,17 +59,17 @@ class PostgresImageRepository:
 
 
 
-    def get_list_paginated(self, limit: int, offset: int) -> list[ImageDetailsDTO]:
-        query = """
+    def get_list_paginated_sorted(self, limit: int, offset: int, sort_param: str, sort_value: str) -> list[ImageDetailsDTO]:
+        query = f"""
             SELECT id, filename, original_name, size, upload_time, file_type::text
             FROM images
-            ORDER BY upload_time DESC
-            LIMIT %s OFFSET %s
+            ORDER BY {sort_param} {sort_value.upper()}
+            LIMIT {limit} OFFSET {offset}
         """
         try:
             with self._pool.connection() as conn:
                 with conn.cursor() as cur:
-                    cur.execute(query, (limit, offset))
+                    cur.execute(query)
                     results = cur.fetchall()
 
                     return [
