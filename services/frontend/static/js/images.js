@@ -1,7 +1,21 @@
-// storage.js
+/**
+ * Image Gallery Storage Script
+ *
+ * This module handles the image gallery logic:
+ * - Fetching and displaying images with pagination and sorting
+ * - Saving settings in localStorage and URL
+ * - Deleting images
+ * - Copying image URLs to clipboard
+ *
+ * Expected HTML structure includes elements with IDs:
+ *   - #currentPage, #totalPages
+ *   - #prevPage, #nextPage
+ *   - #perPageSelect, #sortParams, #sortValue
+ *   - .image-gallery container
+ */
 
 window.addEventListener('DOMContentLoaded', () => {
-  const container = document.querySelector('.images-container');
+  const container = document.querySelector('.image-gallery');
   const currentPageSpan = document.getElementById('currentPage');
   const totalPagesSpan = document.getElementById('totalPages');
   const prevBtn = document.getElementById('prevPage');
@@ -10,7 +24,6 @@ window.addEventListener('DOMContentLoaded', () => {
   const sortParamSelect = document.getElementById('sortParams');
   const sortValueSelect = document.getElementById('sortValue');
 
-  // Шаблоны подписей по типу сортировки
   const SORT_VALUE_OPTIONS = {
     sort_age: [
       { value: 'desc', label: 'Newest First' },
@@ -22,6 +35,11 @@ window.addEventListener('DOMContentLoaded', () => {
     ]
   };
 
+  /**
+   * Updates the sort direction dropdown based on selected sort param.
+   * @param {string} sortParam - The selected sort parameter key.
+   * @param {string} selectedValue - The current selected sort order.
+   */
   function updateSortValueOptions(sortParam, selectedValue) {
     sortValueSelect.innerHTML = '';
     SORT_VALUE_OPTIONS[sortParam].forEach(opt => {
@@ -35,11 +53,20 @@ window.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  /**
+   * Retrieves query parameter from URL.
+   * @param {string} name - Parameter name.
+   * @param {any} defaultValue - Default value if not found.
+   * @returns {string}
+   */
   function getQueryParam(name, defaultValue) {
     const params = new URLSearchParams(window.location.search);
     return params.get(name) || defaultValue;
   }
 
+  /**
+   * Updates the URL with current pagination and sorting state.
+   */
   function updateURL(page, perPage, sortParam, sortValue) {
     const params = new URLSearchParams(window.location.search);
     params.set('page', page);
@@ -49,6 +76,9 @@ window.addEventListener('DOMContentLoaded', () => {
     history.replaceState(null, '', `${window.location.pathname}?${params}`);
   }
 
+  /**
+   * Saves current pagination and sorting settings to localStorage.
+   */
   function saveSettings({ page, perPage, sortParam, sortValue }) {
     localStorage.setItem('page', page.toString());
     localStorage.setItem('per_page', perPage.toString());
@@ -56,6 +86,10 @@ window.addEventListener('DOMContentLoaded', () => {
     localStorage.setItem('sort_value', sortValue);
   }
 
+  /**
+   * Loads saved settings from localStorage.
+   * @returns {{ page: number, perPage: number, sortParam: string, sortValue: string }}
+   */
   function loadSettings() {
     return {
       page: parseInt(localStorage.getItem('page')) || 1,
@@ -65,6 +99,13 @@ window.addEventListener('DOMContentLoaded', () => {
     };
   }
 
+  /**
+   * Fetches images from API and renders them.
+   * @param {number} page
+   * @param {number} perPage
+   * @param {string} sortParam
+   * @param {string} sortValue
+   */
   function fetchImages(page = 1, perPage = 8, sortParam = 'sort_age', sortValue = 'desc') {
     saveSettings({ page, perPage, sortParam, sortValue });
     updateURL(page, perPage, sortParam, sortValue);
@@ -95,26 +136,41 @@ window.addEventListener('DOMContentLoaded', () => {
         }
 
         files.forEach(file => {
-          const row = document.createElement('div');
-          row.classList.add('table-row');
-          row.innerHTML = `
-            <div class="file-name">
-              <a href="/images/${file}" class="file-link">
-                <img src="/images/${file}" alt="icon" class="file-icon">
-              </a>  
-              <a href="/images/${file}" class="file-link">  
-                <span>${file}</span>
+          const imageUrl = `http://localhost/images/${encodeURIComponent(file)}`;
+          const card = document.createElement('div');
+          card.classList.add('image-card');
+          card.innerHTML = `
+            <div class="image-card-preview">
+              <a href="/images/${file}">
+                <img src="/images/${file}" alt="${file}" loading="lazy" />
               </a>
             </div>
-            <div class="file-url">http://localhost/images/${file}</div>
-            <div class="file-delete">
-              <button class="delete-btn">
-                <i class="fas fa-trash-alt"></i>
-              </button>
+            <div class="image-card-info">
+              <h3 class="image-card-title" title="${file}">${file}</h3>
+              <p class="image-card-url" title="${imageUrl}">${imageUrl}</p>
+              <div class="image-card-actions">
+                <button class="copy-url-btn">Copy URL</button>
+                <button class="card-delete-btn" aria-label="Delete image">
+                  <i class="fas fa-trash-alt"></i>
+                </button>
+              </div>
             </div>
           `;
 
-          row.querySelector('.delete-btn').addEventListener('click', () => {
+          // Copy image URL to clipboard
+          const copyBtn = card.querySelector('.copy-url-btn');
+          copyBtn.addEventListener('click', () => {
+            navigator.clipboard.writeText(imageUrl)
+              .then(() => alert('Image URL copied to clipboard!'))
+              .catch(err => {
+                console.error('Copy failed:', err);
+                alert('Failed to copy URL');
+              });
+          });
+
+          // Delete image
+          const deleteBtn = card.querySelector('.card-delete-btn');
+          deleteBtn.addEventListener('click', () => {
             if (!confirm(`Delete file ${file}?`)) return;
 
             fetch(`/api/images/${encodeURIComponent(file)}`, { method: 'DELETE' })
@@ -131,20 +187,12 @@ window.addEventListener('DOMContentLoaded', () => {
               });
           });
 
-          container.appendChild(row);
-
-          const fileNameDiv = row.querySelector('.file-name');
-          const fileIconImg = row.querySelector('.file-icon');
-          [fileNameDiv, fileIconImg].forEach(el => {
-            el.addEventListener('click', () => {
-              window.location.href = `/images/${encodeURIComponent(file)}`;
-            });
-          });
+          container.appendChild(card);
         });
       });
   }
 
-  // === Начальная загрузка ===
+  // Initialization
   const saved = loadSettings();
 
   let page = parseInt(getQueryParam('page', saved.page));
@@ -152,15 +200,14 @@ window.addEventListener('DOMContentLoaded', () => {
   let sortParam = getQueryParam('sort_param', saved.sortParam);
   let sortValue = getQueryParam('sort_value', saved.sortValue);
 
-  // Применить в select элементы
   perPageSelect.value = perPage.toString();
   sortParamSelect.value = sortParam;
-  updateSortValueOptions(sortParam, sortValue); // ⚠️ обновляем подписи
+  updateSortValueOptions(sortParam, sortValue);
 
   updateURL(page, perPage, sortParam, sortValue);
   fetchImages(page, perPage, sortParam, sortValue);
 
-  // === Слушатели ===
+  // UI Listeners
   prevBtn.addEventListener('click', () => {
     if (page > 1) {
       page--;
@@ -181,7 +228,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   sortParamSelect.addEventListener('change', () => {
     sortParam = sortParamSelect.value;
-    sortValue = SORT_VALUE_OPTIONS[sortParam][0].value; // сброс к первому значению
+    sortValue = SORT_VALUE_OPTIONS[sortParam][0].value;
     updateSortValueOptions(sortParam, sortValue);
     page = 1;
     fetchImages(page, perPage, sortParam, sortValue);
