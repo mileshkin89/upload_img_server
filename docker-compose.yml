@@ -69,6 +69,30 @@ services:
       retries: 5
       start_period: 15s
 
+  pgbouncer:
+    build:
+      context: ./services/pgbouncer
+      dockerfile: Dockerfile
+    container_name: pgbouncer-upload-server
+    restart: always
+    env_file:
+      - ./services/backend/.env
+      - ./services/pgbouncer/.env
+    ports:
+      - "6432:6432"
+    volumes:
+      - ./logs/pgbouncer:/var/log/pgbouncer
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U $${PGBOUNCER_USER} -d $${POSTGRES_DB} || exit 1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - upload-server-network
+
 
 networks:
   upload-server-network:
