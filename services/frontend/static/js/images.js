@@ -24,6 +24,7 @@ window.addEventListener('DOMContentLoaded', () => {
   const sortParamSelect = document.getElementById('sortParams');
   const sortValueSelect = document.getElementById('sortValue');
 
+
   const SORT_VALUE_OPTIONS = {
     sort_age: [
       { value: 'desc', label: 'Newest First' },
@@ -32,7 +33,11 @@ window.addEventListener('DOMContentLoaded', () => {
     sort_size: [
       { value: 'desc', label: 'Big First' },
       { value: 'asc', label: 'Little First' },
-    ]
+    ],
+    sort_name: [
+      { value: 'desc', label: ' Z - A ' },
+      { value: 'asc', label: ' A - Z ' },
+    ],
   };
 
   /**

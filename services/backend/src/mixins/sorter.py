@@ -7,14 +7,15 @@ class SorterMixin:
     sort_value: str
 
     DEFAULT_SORT_PARAM: str = "sort_age"
-    AVAILABLE_SORT_PARAMS: set[str] = {"sort_age", "sort_size"}
+    AVAILABLE_SORT_PARAMS: set[str] = {"sort_age", "sort_size", "sort_name"}
 
     DEFAULT_SORT_VALUES: str = "desc"
     AVAILABLE_SORT_VALUES: set[str] = {"asc", "desc"}
 
     MATCHED_SQL_PARAMS: dict = {
         "sort_age": "upload_time",
-        "sort_size": "size"
+        "sort_size": "size",
+        "sort_name": "original_name",
     }
 
 
