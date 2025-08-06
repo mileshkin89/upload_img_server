@@ -5,6 +5,7 @@ import shutil
 import math
 from typing import BinaryIO
 from multipart import parse_form
+from python_multipart.exceptions import FormParserError
 from PIL import Image, UnidentifiedImageError
 from typing import Union
 from http.client import HTTPMessage
@@ -108,14 +109,15 @@ class FileHandler:
 
         try:
             parse_form(prepared_headers, rfile, lambda _: None, on_file)
-        except APIError as e:
+        except FormParserError as e:
             raise e
 
         if not files:
             raise APIError("No file was uploaded.")
 
         self.file = files[0]
-        self.filename = self.file.file_name.decode("utf-8") if self.file.file_name else "uploaded_file"
+        filename = self.file.file_name.decode("utf-8") if self.file.file_name else "uploaded_file"
+        self.filename = filename if len(filename)<100 else filename[:100]
 
 
     def save_file(self, file):
