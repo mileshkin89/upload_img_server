@@ -10,7 +10,7 @@ services:
       context: services/backend
       dockerfile: Dockerfile
     container_name: upload-server
-    command: [ "python", "server.py" ]
+    command: [ "python", "run.py" ]
     env_file:
       - services/backend/.env
     environment:
