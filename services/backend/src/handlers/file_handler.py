@@ -1,4 +1,17 @@
+"""
+file_handler.py
 
+Provides the `FileHandler` class responsible for parsing, validating, saving,
+deleting, and listing uploaded image files.
+
+Supports:
+- Parsing multipart form data
+- Validating image format, size, and content
+- Creating unique filenames
+- Saving files to disk and writing metadata to the database
+- Deleting files and associated records
+- Paginated and sorted retrieval of uploaded image filenames
+"""
 import os
 import uuid
 import shutil
@@ -21,6 +34,19 @@ logger = get_logger(__name__)
 
 
 class FileHandler:
+    """
+    Handles file upload operations, including validation, storage,
+    database interactions, and file cleanup.
+
+    Attributes:
+        file (BinaryIO): The uploaded file stream.
+        filename (str): Original filename from the client (max 100 chars).
+        original_name (str): Cleaned lowercase filename without extension.
+        ext (str): File extension (e.g., ".jpg").
+        unique_name (str): Unique filename generated with UUID.
+        unique_name_ext (str): Final name with extension.
+        size (int): File size in bytes.
+    """
     def __init__(self):
         self.file: BinaryIO = None
         self.filename: str = None
@@ -32,12 +58,30 @@ class FileHandler:
 
 
     def define_size_file(self, file):
+        """
+        Calculate and store the size of the uploaded file in bytes.
+
+        Args:
+            file: Multipart file object with file_object attribute.
+        """
         file.file_object.seek(0, os.SEEK_END)
         self.size = file.file_object.tell()
         file.file_object.seek(0)
 
 
     def _valided_file_size(self, file) -> bool:
+        """
+        Check if the file size does not exceed the configured limit.
+
+        Args:
+            file: Multipart file object.
+
+        Returns:
+            bool: True if valid.
+
+        Raises:
+            MaxSizeExceedError: If file exceeds allowed size.
+        """
         self.define_size_file(file)
 
         if self.size > config.MAX_FILE_SIZE:
@@ -47,6 +91,18 @@ class FileHandler:
 
 
     def _valided_file_format(self, filename) -> bool:
+        """
+        Check if the file has a supported extension.
+
+        Args:
+            filename (str): Name of the uploaded file.
+
+        Returns:
+            bool: True if valid.
+
+        Raises:
+            NotSupportedFormatError: If file extension is not allowed.
+        """
         self.ext = os.path.splitext(filename)[1].lower()
 
         if self.ext not in config.SUPPORTED_FORMATS:
@@ -56,6 +112,18 @@ class FileHandler:
 
 
     def _valided_file_content(self, file) -> bool:
+        """
+        Verify the binary content of the file is a valid image.
+
+        Args:
+            file: Multipart file object.
+
+        Returns:
+            bool: True if valid.
+
+        Raises:
+            NotSupportedFormatError: If image format is invalid or unreadable.
+        """
         try:
             image = Image.open(file.file_object)
             image.verify()
@@ -67,6 +135,16 @@ class FileHandler:
 
 
     def file_is_valid(self, file, filename) -> bool:
+        """
+        Run all validation checks (size, format, content) for the uploaded file.
+
+        Args:
+            file: Multipart file object.
+            filename (str): Filename as received.
+
+        Returns:
+            bool: True if file passes all validation checks.
+        """
         if not self._valided_file_size(file):
             return False
         if not self._valided_file_format(filename):
@@ -77,13 +155,30 @@ class FileHandler:
 
 
     def create_unique_filename(self, filename):
+        """
+        Generate a unique filename using UUID, preserving the original base name and extension.
+
+        Args:
+            filename (str): Original filename.
+        """
         self.original_name, self.ext = os.path.splitext(filename.lower())
         self.unique_name = f"{self.original_name}_{uuid.uuid4()}"
         self.unique_name_ext = f"{self.unique_name}{self.ext}"
 
 
     def parse_formdata(self, headers: Union[dict[str, str], HTTPMessage], rfile: BinaryIO):
-        """Parses and validates multipart form data, extracts uploaded file."""
+        """
+        Parse and extract the uploaded file from multipart form data.
+
+        Args:
+            headers (dict or HTTPMessage): Request headers.
+            rfile (BinaryIO): Input file stream from request body.
+
+        Raises:
+            APIError: If the content type is invalid or no file was uploaded.
+            MultipleFilesUploadError: If multiple files were uploaded.
+            FormParserError: If the multipart form parser fails.
+        """
 
         # Convert headers if they are HTTPMessage (as in self.headers)
         if not isinstance(headers, dict):
@@ -121,6 +216,15 @@ class FileHandler:
 
 
     def save_file(self, file):
+        """
+        Validate, save, and persist file metadata to the database.
+
+        Args:
+            file: Multipart file object.
+
+        Raises:
+            APIError: If the file is invalid or saving fails.
+        """
         if not self.file_is_valid(file, self.filename):
             raise APIError("File validation failed")
 
@@ -154,6 +258,17 @@ class FileHandler:
 
 
     def delete_file(self, filename: str):
+        """
+        Delete a file from disk and its associated record from the database.
+
+        Args:
+            filename (str): Name of the file to delete (including extension).
+
+        Raises:
+            APIError: If file format is unsupported.
+            EntityNotFoundError: If file record not found in DB.
+            RepositoryError: If DB operation fails.
+        """
 
         self.unique_name = os.path.splitext(filename)[0].lower()
 
@@ -186,6 +301,18 @@ class FileHandler:
 
 
     def get_list_images(self, limit: int = 8, offset: int = 0, sort_param: str = 'upload_time', sort_value: str = 'desc') -> dict:
+        """
+        Retrieve a paginated and sorted list of uploaded image filenames.
+
+        Args:
+            limit (int): Number of images per page.
+            offset (int): Starting position in the result set.
+            sort_param (str): Sort field (e.g., 'upload_time').
+            sort_value (str): Sort order ('asc' or 'desc').
+
+        Returns:
+            dict: Dictionary containing 'files' and 'total_pages'.
+        """
 
         repository = get_image_repository()
 

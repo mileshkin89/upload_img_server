@@ -2,7 +2,6 @@
 
 from db.session import get_connection_pool
 from db.repositories import PostgresImageRepository
-from settings.config import config
 from settings.logging_config import get_logger
 
 logger = get_logger(__name__)

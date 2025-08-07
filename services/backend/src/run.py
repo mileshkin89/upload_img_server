@@ -1,4 +1,17 @@
+"""
+run.py
 
+Development server runner with hot reload capabilities.
+
+This module watches for changes in Python source files and automatically
+restarts the server when modifications are detected. It improves development
+workflow by eliminating the need for manual restarts.
+
+Features:
+- Automatically restarts the server on file changes.
+- Handles graceful shutdown on SIGINT and SIGTERM.
+- Logs changes, restarts, and errors.
+"""
 import os
 import sys
 import signal

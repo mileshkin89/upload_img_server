@@ -1,4 +1,16 @@
+"""
+route_parser.py
 
+Provides the `RouteParserMixin`, a reusable mixin class for HTTP request routing.
+
+It supports:
+- Matching static and parameterized routes (e.g., `/api/image/<filename>`)
+- Extracting route parameters and query parameters from request paths
+- Dispatching requests to corresponding handler methods
+- Basic error handling via abstract `send_json_error()`
+
+Intended to be used in HTTP handlers (e.g., subclasses of `BaseHTTPRequestHandler`).
+"""
 import re
 from typing import Dict, Optional, Tuple
 from abc import abstractmethod
@@ -9,7 +21,23 @@ logger = get_logger(__name__)
 
 
 class RouteParserMixin:
+    """
+    A mixin that enables HTTP-style routing for classes with a `path` attribute.
 
+    It supports:
+    - Static and dynamic route pattern matching
+    - Extraction of path parameters and query parameters
+    - Dispatching to handler methods dynamically
+
+    Attributes:
+        routes_get (Dict[str, str]): Mapping of GET routes to handler method names.
+        routes_post (Dict[str, str]): Mapping of POST routes to handler method names.
+        routes_delete (Dict[str, str]): Mapping of DELETE routes to handler method names.
+        routes_put (Dict[str, str]): Mapping of PUT routes to handler method names.
+        path (Optional[str]): The raw request path, including query string.
+        route_params (Dict[str, str]): Extracted path parameters (e.g., {"filename": "test.png"}).
+        route_query_params (Dict[str, str]): Extracted query parameters (e.g., {"page": "1"}).
+    """
     routes_get: Dict[str, str] = {}
     routes_post: Dict[str, str] = {}
     routes_delete: Dict[str, str] = {}
@@ -22,17 +50,25 @@ class RouteParserMixin:
 
     @abstractmethod
     def send_json_error(self, status_code: int, message: str) -> None:
+        """
+        Abstract method to send a JSON-formatted error response.
+
+        Args:
+            status_code (int): HTTP status code.
+            message (str): Error message.
+        """
         pass
 
 
     def _route_to_regex(self, route: str) -> Tuple[re.Pattern, list]:
-        """Convert route pattern to regex pattern.
+        """
+        Convert a route string with parameter placeholders into a compiled regex.
 
         Args:
-            route (str): Route pattern like '/upload/<filename>' or '/api/<path>/<id>'
+            route (str): A route pattern like '/api/<entity>/<id>'.
 
         Returns:
-            Tuple[re.Pattern, list]: Compiled regex pattern and list of parameter names
+            Tuple[re.Pattern, list]: A compiled regex and a list of parameter names.
         """
         param_names = []
         regex_pattern = route
@@ -52,7 +88,8 @@ class RouteParserMixin:
 
 
     def _parse_query_params(self) -> Dict[str, str]:
-        """Extracts query parameters from the request path.
+        """
+        Parse and return query parameters from the request path.
 
         Returns:
             Dict[str, str]: Dictionary of query parameters.
@@ -72,14 +109,15 @@ class RouteParserMixin:
 
 
     def _match_route(self, full_path: str, routes: Dict[str, str]) -> Optional[str]:
-        """Match request path to a route and extract path/query parameters.
+        """
+        Match the request path against a routing table and extract parameters.
 
         Args:
-            full_path (str): Full request path, e.g. '/api/images/123.jpg?page=2'
-            routes (Dict[str, str]): Map of route patterns to handler names
+            full_path (str): The full request path (may include query string).
+            routes (Dict[str, str]): Mapping of route patterns to handler method names.
 
         Returns:
-            Optional[str]: Handler method name or None if no match
+            Optional[str]: The name of the matched handler method, or None.
         """
         self.route_params = {}
         self.route_query_params = {}
@@ -114,7 +152,18 @@ class RouteParserMixin:
 
 
     def handle_request(self, routes: dict[str, str]) -> None:
+        """
+        Resolve and invoke the handler function for the current path.
 
+        This method:
+        - Validates presence of `self.path`
+        - Matches the path to the routing table
+        - Calls the appropriate handler if found
+        - Sends JSON errors for unmatched or missing handlers
+
+        Args:
+            routes (dict[str, str]): Dictionary of route patterns mapped to handler names.
+        """
         if self.path is None:
             self.send_json_error(500, "Path not available")
             return

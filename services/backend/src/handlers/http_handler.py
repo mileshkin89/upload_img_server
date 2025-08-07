@@ -1,5 +1,17 @@
-# server.py
+"""
+HTTP request handler module for the Upload Server.
 
+This handler extends BaseHTTPRequestHandler and includes several mixins to support:
+- JSON response formatting
+- Route parsing and matching
+- Pagination and sorting of image results
+
+Routes:
+    - GET     /api/images/           → List uploaded images with pagination and sorting
+    - GET     /                      → Health check endpoint
+    - POST    /api/upload/           → Upload an image file
+    - DELETE  /api/images/<filename> → Delete a specific image file
+"""
 from http.server import BaseHTTPRequestHandler
 
 from exceptions.api_errors import APIError
@@ -15,7 +27,12 @@ logger = get_logger(__name__)
 
 
 class HTTPHandler(BaseHTTPRequestHandler, JsonSenderMixin, RouteParserMixin, PaginationMixin, SorterMixin):
+    """
+    HTTP request handler class for the Upload Server API.
 
+    Inherits from BaseHTTPRequestHandler and combines functionality from several mixins
+    to support routing, JSON responses, pagination, and sorting.
+    """
     routes_get = {
         "/api/images/": "_handle_get_api_images",
         "/": "_handle_get_root",
@@ -44,13 +61,22 @@ class HTTPHandler(BaseHTTPRequestHandler, JsonSenderMixin, RouteParserMixin, Pag
 
 
     def _handle_get_root(self):
-        """Handles healthcheck at GET /."""
+        """
+        GET /
+
+        Simple health check endpoint.
+        Responds with a welcome message.
+        """
         logger.info("Healthcheck endpoint hit: /")
         self.send_json_response(200, {"message": "Welcome to the Upload Server"})
 
 
     def _handle_get_api_images(self):
+        """
+        GET /api/images/
 
+        Returns a list of uploaded images with pagination and sorting support.
+        """
         pagination_to_sql = self.get_limit_offset(self.route_query_params)
         limit = pagination_to_sql.get("limit")
         offset = pagination_to_sql.get("offset")
@@ -71,7 +97,12 @@ class HTTPHandler(BaseHTTPRequestHandler, JsonSenderMixin, RouteParserMixin, Pag
 
 
     def _handle_post_api_upload(self):
+        """
+        POST /api/upload/
 
+        Handles image file uploads via multipart form-data.
+        Saves the file and returns the new filename and URL.
+        """
         f_handler = FileHandler()
         try:
             f_handler.parse_formdata(self.headers, self.rfile)
@@ -90,7 +121,11 @@ class HTTPHandler(BaseHTTPRequestHandler, JsonSenderMixin, RouteParserMixin, Pag
 
 
     def _handle_delete_api_image(self):
+        """
+        DELETE /api/images/<filename>
 
+        Deletes an uploaded image file by filename.
+        """
         filename = self.route_params.get("filename", "")
 
         if not filename:
